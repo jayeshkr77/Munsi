@@ -1,5 +1,7 @@
+![alt text](/logo\munsi.png)
+
 # Munsi
-A light weight simple logger middleware for express server.
+A light weight no dependency simple logger middleware for express server. 
 
 ## Installation
 
