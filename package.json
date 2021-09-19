@@ -1,0 +1,28 @@
+{
+  "name": "munsi",
+  "version": "1.0.0",
+  "description": "A light weight simple logger middleware for express server.",
+  "contributors": [
+    "Jayesh Kumar <jayeshkumar044@gmail.com> (https://github.com/jayeshkr77)"
+  ],
+  "main": "index.js",
+  "keywords": [
+    "munsi",
+    "logger",
+    "middleware",
+    "express",
+    "http"
+  ],
+  "author": "Jayesh Kumar",
+  "license": "ISC",
+  "files":[
+    "index.js",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
