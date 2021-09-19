@@ -1,4 +1,4 @@
-![alt text](/logo\munsi.png)
+![alt text](https://github.com/jayeshkr77/Munsi/blob/main/logo/munsi.png)
 
 # Munsi
 A light weight no dependency simple logger middleware for express server. 
