@@ -5,6 +5,7 @@
   "contributors": [
     "Jayesh Kumar <jayeshkumar044@gmail.com> (https://github.com/jayeshkr77)"
   ],
+  "homepage": "https://github.com/owner/project#readme",
   "main": "index.js",
   "keywords": [
     "munsi",
@@ -14,7 +15,7 @@
     "http"
   ],
   "author": "Jayesh Kumar",
-  "license": "ISC",
+  "license": "MIT",
   "files":[
     "index.js",
     "README.md"
@@ -24,5 +25,9 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jayeshkr77/Munsi"
   }
 }
