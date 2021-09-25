@@ -1,6 +1,6 @@
 {
   "name": "munsi",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "A light weight simple logger middleware for express server.",
   "contributors": [
     "Jayesh Kumar <jayeshkumar044@gmail.com> (https://github.com/jayeshkr77)"
@@ -16,7 +16,7 @@
   ],
   "author": "Jayesh Kumar",
   "license": "MIT",
-  "files":[
+  "files": [
     "index.js",
     "README.md"
   ],
@@ -29,5 +29,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/jayeshkr77/Munsi"
-  }
+  },
+  "dependencies": {}
 }
