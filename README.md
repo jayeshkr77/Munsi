@@ -18,8 +18,8 @@ var munsi = require('munsi')
 ### 2.2 Create event logs.
 Use `logger` function to create event logs middleware function:
 #### Parameters:
-1. `path` - Path where you want to create your logs. Read log file location section for more info.
-2. `config` - Configuration for the logger.
+1. `path` - Path where you want to create your logs. Read *4. Log file location* section for more info.
+2. `config` - Configuration for the event logger.
     * `headers` - **Array of HTTP header names** - **Optional**
         * If *headersIncluded* is true:\
         Logger will log only the headers mentioned in config.headers. If headers array is empty no headers will be logged.
@@ -33,7 +33,7 @@ Use `logger` function to create event logs middleware function:
     * `dateFormat` - Takes two values **'ddmmyyyy'** or **'mmddyyyy'**
         * This date format will be used to create log file name. see *4. Log file location* section.
         * Dates in the log file will be logged in this format.
-        * If you set the dateFormat in config for error.logger() function it will overwride this dateFormat. Hence use only once, If you are using both the loggers set in events logs and not in error logs.
+        * If you set the dateFormat in config for error.logger() function it will overwride this dateFormat. Hence use only once, If you are using both the loggers set the dateFormats in events logs and not in error logs.
 
 #### Function signature:
 ```ts
@@ -46,7 +46,7 @@ Samples:
     ```
     use:
     ```js
-    let logLocation = __dirname + './../logs/event.log';
+    let logLocation = path.join(__dirname + './../logs/event.log');
     app.use(munsi.logger(eventLogLocation));
     ```
 2. Simple Apache logs + Headers in the log - Specify headers as an array of header names which you want to log:
@@ -68,7 +68,7 @@ Samples:
 ### 2.3 Create error logs.
 Use `errorLogger` function to create error logs:
 #### Parameters:
-1. `path` - Path where you want to create your error logs. Read x.x log file location section for more info.
+1. `path` - Path where you want to create your error logs. Read *4. Log file location* section for more info.
 2. `config` - Configuration for the error logger.
     * `responseMessage` - **Response to be sent back when unhandled error has occured** - **Optional**
         * If not provided - Blank response will be sent. **Not Recommended.**
@@ -79,10 +79,7 @@ Use `errorLogger` function to create error logs:
                 responseType: "JSON"
             }
             ```
-            If responseType is set to JSON logger will send the response with
-            ```js
-            res.statusCode(500).json(JSON.parse(config.responseMessage));
-            ```
+
         * If you want to send HTML, set responseMessage and responseType as:
             ```js
             {
@@ -90,22 +87,26 @@ Use `errorLogger` function to create error logs:
                 responseType: "HTML"
             }
             ```
-            If responseType is set to HTML logger will send the response with
-            ```js
-            res.statusCode(500).send(config.responseMessage);
-            ```
-        * If you want to send file, set responseMessage and responseType as:
+        * If you want to send a file, set responseMessage and responseType as:
             ```js
             {
                 responseMessage: fs.join(__dirname,'<file path>'),
                 responseType: "FILE"
             }
             ```
-            If responseType is set to HTML logger will send the response with
+    * `responseType` - Value **JSON | HTML | FILE**. See responseMessage section to learn the usage. Default value is HTML
+        * If responseType is set to JSON logger will send the response with
+            ```js
+            res.statusCode(500).json(JSON.parse(config.responseMessage));
+            ```
+        * If responseType is set to HTML logger will send the response with
+            ```js
+            res.statusCode(500).send(config.responseMessage);
+            ```
+        * If responseType is set to HTML logger will send the response with
             ```js
             res.statusCode(500).sendFile(config.responseMessage);
             ```
-    * `responseType` - Value **JSON | HTML | FILE**. See responseMessage section learn the usage. Default value is HTML
     * `dateFormat` - Takes two values **'ddmmyyyy'** or **'mmddyyyy'**
         * This date format will be used to create log file names. see *4. Log file location* section.
         * Dates in the log file will be logged in this format.
@@ -143,6 +144,7 @@ Sample:
 1. Simple Apache like logs for express
     ```js
     const express = require('express')
+    const path = require('path')
     const munsi = require('munsi')
 
     const app = express();
@@ -171,6 +173,7 @@ Sample:
 2. Simple logs + Headers in the log
     ```js
     const express = require('express')
+    const path = require('path')
     const munsi = require('munsi')
 
     const app = express();
@@ -204,9 +207,10 @@ Sample:
 ## 4. Log file location
 * If you have provided file name in logLocation as `__dirname + './../logs/event.log'` it will be changed to `__dirname + './../logs/09122021event.log'` where 09122021 is ddmmyyyy. The same will be followed for error log.
 * If you have provided just the directory for logLocation as `__dirname + './../logs/'` it will create a log file with default name **event.log**/**error.log** and will suffix ddmmyyyy as `__dirname + './../logs/09122021event.log'` or `__dirname + './../logs/09122021error.log'`.
-* If the log file is greater than 2MB it will create a new log file.
+* If the log file grows greater than 2MB, it will create a new log file.
     Rules for new log file:
     + If the new file name that was to be given to the log file is already there it will append number after that eg: `__dirname + './../logs/09122021event1.log'`. The same will be followed for error log.
+* Use `path.join()` to create file paths to avoid errors related to path naming conventions of different OS.
 ## 5. Suggestions
 1. If you are logging any additional logs from any other middleware or function, you should use the same event log file using the `munsi.getEventLogLocation()`.
 2. You can use `munsi.getErrorLogLocation()` for error log file path.
