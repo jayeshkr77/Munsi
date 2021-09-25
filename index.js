@@ -38,9 +38,9 @@ const createSuffix = () => {
 /**
  * Creates the log file path, If file size grows bigger than MAX_LOG_FILE_SIZE_MB it will
  * create a new file by appending number at the end of the files.
- * @param {string} filePath
- * @param {"event" | "error"} type
- * @returns {string}
+ * @param {string} filePath File path where the logs will be kept.
+ * @param {"event" | "error"} type Values: 'events' or 'logs'
+ * @returns {string} Log file path
  */
 const createLogFilePath = (filePath, type) => {
     let folderPath;
@@ -92,10 +92,14 @@ const createLogFilePath = (filePath, type) => {
     return path_1.default.join(folderPath, fileName);
 };
 /**
- * Retruns the middleware function which will log the events in the path provided.
- * @param {string} path
- * @param {Array<string>} headers
- * @returns {function}
+ * Retruns the middleware function which will log the errors in the path provided.
+ * @param {string} path Path of the error log file.
+ * @param {Object} config {
+ *                          headers: Array of header names to be exclude or included,
+ *                          headersIncluded: true -> To include only the headers in config.headers else exclude the headers,
+ *                          dateFormat: Log date format ['ddmmyyyy' or 'mmddyyyy']. default is 'ddmmyyyy'
+ *                        }
+ * @returns {function} Returns a middleware function.
  */
 const logger = (path, config) => {
     if (typeof (path) !== 'string') {
@@ -179,8 +183,11 @@ const logger = (path, config) => {
 /**
  * Retruns the middleware function which will log the errors in the path provided.
  * @param {string} path Path of the error log file.
- * @param {string} errorMessage Error response to be sent back to client.
- * @param {string} dateFormat Log date format ['ddmmyyyy' or 'mmddyyyy']. default is 'ddmmyyyy'
+ * @param {Object} config {
+ *                          responseMessage: Error response to be sent back to client,
+ *                          responseType: HTML | JSON | FILE,
+ *                          dateFormat: Log date format ['ddmmyyyy' or 'mmddyyyy']. default is 'ddmmyyyy'
+ *                        }
  * @returns {function} Returns a middleware function.
  */
 const errorLogger = (path, config) => {
@@ -232,13 +239,13 @@ const errorLogger = (path, config) => {
             }
             switch (config.responseType.toUpperCase()) {
                 case 'JSON':
-                    res.json(JSON.parse(config.responseMessage));
+                    res.statusCode(500).json(JSON.parse(config.responseMessage));
                     break;
                 case 'FILE':
-                    res.sendFile(config.responseMessage);
+                    res.statusCode(500).sendFile(config.responseMessage);
                     break;
                 default:
-                    res.send(config.responseMessage);
+                    res.statusCode(500).send(config.responseMessage);
                     break;
             }
         });
