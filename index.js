@@ -8,14 +8,17 @@ const path_1 = __importDefault(require("path"));
 let MAX_LOG_FILE_SIZE_MB = 1;
 let eventLogLocation;
 let errorLogLocation;
-let suffixDateFormat;
+let suffixDateFormat = 'ddmmyyyy';
+// If set to true the headers array will only be logged
+// If set to false the except headers in the array everything else will be logged.  
+let includeHeaders = true;
 /**
  * Return the date and time according to the format.
  * @returns {string} dd-mm-yyyy hh:mm:ss format date time
  */
 const getDateTime = () => {
     var date_ob = new Date();
-    if (suffixDateFormat === 'mmddyyyyy') {
+    if (suffixDateFormat === 'mmddyyyy') {
         return `${("0" + (date_ob.getMonth() + 1)).slice(-2)}-${("0" + date_ob.getDate()).slice(-2)}-${date_ob.getFullYear()} ${date_ob.getHours()}:${date_ob.getMinutes()}:${date_ob.getSeconds()}`;
     }
     return `${("0" + date_ob.getDate()).slice(-2)}-${("0" + (date_ob.getMonth() + 1)).slice(-2)}-${date_ob.getFullYear()} ${date_ob.getHours()}:${date_ob.getMinutes()}:${date_ob.getSeconds()}`;
@@ -40,12 +43,23 @@ const createSuffix = () => {
  * @returns {string}
  */
 const createLogFilePath = (filePath, type) => {
+    let folderPath;
+    let fileName;
     let lastIndex = filePath.lastIndexOf('\\');
     if (lastIndex === -1) {
         throw new Error('Invalid path name.');
     }
-    let folderPath = filePath.slice(0, lastIndex);
-    let fileName = filePath.slice(lastIndex + 1);
+    if (filePath.lastIndexOf('.') > -1) {
+        folderPath = filePath.slice(0, lastIndex);
+        fileName = filePath.slice(lastIndex + 1);
+    }
+    else {
+        folderPath = filePath;
+    }
+    //Create folder if not present
+    if (!fs_1.default.existsSync(folderPath)) {
+        fs_1.default.mkdirSync(folderPath);
+    }
     let suffix = createSuffix();
     // If file name is provided
     if (fileName && fileName.length) {
@@ -83,63 +97,152 @@ const createLogFilePath = (filePath, type) => {
  * @param {Array<string>} headers
  * @returns {function}
  */
-const logger = (path, headers = [], format = 'ddmmyyyy') => {
-    if (headers && path) {
-        suffixDateFormat = format;
-        return (req, res, next) => {
-            let reqStart = Date.now();
-            let log = `${req.socket.remoteAddress} - ${getDateTime()} - "${req.method} ${req.url} ${req.protocol} `;
-            next();
-            log += `${res.statusCode}" - `;
-            if (headers.length) {
+const logger = (path, config) => {
+    if (typeof (path) !== 'string') {
+        throw new Error(`Invalid file path. Expected: string. Provided: ${typeof (path)} `);
+    }
+    if (!path.length) {
+        throw new Error(`Invalid file path. Expected: non empty string. Prodvided: empty string`);
+    }
+    if (typeof (config) !== 'undefined') {
+        try {
+            if (config.headers) {
+                if (!config.headers.every(key => typeof (key) === 'string')) {
+                    throw new Error(`Invalid headers. Expected: Array<string>.`);
+                }
+            }
+        }
+        catch (_a) {
+            throw new Error(`Invalid headers. Expected: Array<string>. Provided: ${config.headers}`);
+        }
+        if (typeof (config.headersIncluded) !== 'boolean' && typeof (config.headersIncluded) !== 'undefined') {
+            throw new Error(`Invalid flag for headersIncluded. Expected: boolean. Provided: ${config.headersIncluded}`);
+        }
+        else {
+            includeHeaders = config.headersIncluded;
+        }
+        // Validations for dateFormat
+        if (typeof (config.dateFormat) === 'undefined') {
+            suffixDateFormat = config.dateFormat;
+        }
+        else if (typeof (config.dateFormat) !== 'string') {
+            throw new Error(`Invalid config.dateFormat. Expected: string type. Provided: ${typeof (config.dateFormat)}`);
+        }
+        else if (!(config.dateFormat === 'ddmmyyyy' || config.dateFormat === 'mmddyyyy')) {
+            throw new Error(`Invalid config.dateFormat. Expected: 'ddmmyyyy' or 'mmddyyyy'. Provided: ${config.dateFormat}`);
+        }
+        else {
+            suffixDateFormat = config.dateFormat;
+        }
+    }
+    return (req, res, next) => {
+        let reqStart = Date.now();
+        let log = `${req.socket.remoteAddress} - ${getDateTime()} - "${req.method} ${req.url} ${req.protocol} `;
+        next();
+        log += `${res.statusCode}" - `;
+        if (config && config.headers) {
+            // Will include only supplied headers in the log.
+            if (includeHeaders) {
+                if (config.headers.length > 0) {
+                    log += 'Headers: [ ';
+                    config.headers.map(key => {
+                        if (req.headers[key]) {
+                            log += `${key}: ${req.headers[key]}, `;
+                        }
+                    });
+                    log = `${log.slice(0, -2)}] - `;
+                }
+            }
+            // Will exclude all supplied headers in the log.
+            else {
                 log += 'Headers: [ ';
-                headers.map(key => {
-                    if (req.headers[key]) {
+                Object.keys(req.headers).map(key => {
+                    if (!config.headers.includes(key)) {
                         log += `${key}: ${req.headers[key]}, `;
                     }
                 });
                 log = `${log.slice(0, -2)}] - `;
             }
-            log += `${Date.now() - reqStart} ms\n`;
-            eventLogLocation = createLogFilePath(path, "event");
-            fs_1.default.appendFile(eventLogLocation, log, err => {
-                if (err) {
-                    //error occured while writing to a file
-                    next(err);
-                }
-            });
-        };
-    }
-    else {
-        throw new Error('log file path is undefined.');
-    }
+        }
+        log += `${Date.now() - reqStart} ms\n`;
+        eventLogLocation = createLogFilePath(path, "event");
+        console.log(eventLogLocation);
+        fs_1.default.appendFile(eventLogLocation, log, err => {
+            if (err) {
+                //error occured while writing to a file
+                console.log('file error');
+                next(err);
+            }
+        });
+    };
 };
 /**
  * Retruns the middleware function which will log the errors in the path provided.
- * @param {string} path
- * @param {string} errorMessage
- * @returns {function}
+ * @param {string} path Path of the error log file.
+ * @param {string} errorMessage Error response to be sent back to client.
+ * @param {string} dateFormat Log date format ['ddmmyyyy' or 'mmddyyyy']. default is 'ddmmyyyy'
+ * @returns {function} Returns a middleware function.
  */
-const errorLogger = (path, errorMessage, format = 'ddmmyyyy') => {
-    if (path) {
-        errorLogLocation = path;
-        suffixDateFormat = format;
-        return (err, req, res, next) => {
-            let reqStart = Date.now();
-            let log = `${req.socket.remoteAddress} - ${getDateTime()} - "${req.method} ${req.url} ${req.protocol} " - ${err.stack}\n`;
-            errorLogLocation = createLogFilePath(path, 'error');
-            fs_1.default.appendFile(errorLogLocation, log, err => {
-                if (err) {
-                    //error occured while writing to a file
-                    throw err;
-                }
-                res.send(errorMessage);
-            });
-        };
+const errorLogger = (path, config) => {
+    if (typeof (path) !== 'string') {
+        throw new Error(`Invalid file path. Expected: string. Provided: ${typeof (path)} `);
     }
-    else {
-        throw new Error('Error log file path is undefined.');
+    if (!path.length) {
+        throw new Error(`Invalid file path. Expected: non empty string. Prodvided: empty string`);
     }
+    if (typeof (config) !== 'undefined') {
+        // Validations for responseMessage
+        if (typeof (config.responseMessage) !== 'string') {
+            throw new Error(`Invalid config.responseMessage. Expected: string or JSON type. Provided: ${typeof (config.responseMessage)}`);
+        }
+        // Validations for responseType
+        if (typeof (config.responseType) !== 'undefined') {
+            if (typeof (config.responseType) !== 'string') {
+                throw new Error(`Invalid config.responseType. Expected: string type. Provided: ${typeof (config.responseType)}`);
+            }
+            else if (!(config.responseType.toUpperCase() === 'JSON' || config.responseType.toUpperCase() === 'HTML' || config.responseType.toUpperCase() === 'FILE')) {
+                throw new Error(`Invalid config.responseType. Expected: 'JSON', 'HTML' or 'FILE. Provided: ${config.responseType}`);
+            }
+        }
+        else {
+            config.responseType = 'HTML';
+        }
+        // Validations for dateFormat
+        if (typeof (config.dateFormat) === 'undefined') {
+            suffixDateFormat = config.dateFormat;
+        }
+        else if (typeof (config.dateFormat) !== 'string') {
+            throw new Error(`Invalid config.dateFormat. Expected: string type. Provided: ${typeof (config.dateFormat)}`);
+        }
+        else if (!(config.dateFormat === 'ddmmyyyy' || config.dateFormat === 'mmddyyyy')) {
+            throw new Error(`Invalid config.dateFormat. Expected: 'ddmmyyyy' or 'mmddyyyy'. Provided: ${config.dateFormat}`);
+        }
+        else {
+            suffixDateFormat = config.dateFormat;
+        }
+    }
+    errorLogLocation = path;
+    return (err, req, res, next) => {
+        let log = `${req.socket.remoteAddress} - ${getDateTime()} - "${req.method} ${req.url} ${req.protocol} " - ${err.stack}\n`;
+        errorLogLocation = createLogFilePath(path, 'error');
+        fs_1.default.appendFile(errorLogLocation, log, err => {
+            if (err) {
+                // Error occured while writing to a file
+                throw err;
+            }
+            switch (config.responseType.toUpperCase()) {
+                case 'JSON':
+                    res.json(JSON.parse(config.responseMessage));
+                    break;
+                case 'FILE':
+                    res.sendFile(config.responseMessage);
+                    break;
+                default:
+                    res.send(config.responseMessage);
+                    break;
+            }
+        });
+    };
 };
 /**
  * Retruns the events log location file path.
