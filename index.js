@@ -101,7 +101,7 @@ const createLogFilePath = (filePath, type) => {
  *                        }
  * @returns {function} Returns a middleware function.
  */
-const logger = (path, config) => {
+exports.logger = (path, config) => {
     if (typeof (path) !== 'string') {
         throw new Error(`Invalid file path. Expected: string. Provided: ${typeof (path)} `);
     }
@@ -122,12 +122,18 @@ const logger = (path, config) => {
         if (typeof (config.headersIncluded) !== 'boolean' && typeof (config.headersIncluded) !== 'undefined') {
             throw new Error(`Invalid flag for headersIncluded. Expected: boolean. Provided: ${config.headersIncluded}`);
         }
+        else if (typeof (config.headersIncluded) === 'undefined') {
+            includeHeaders = true;
+        }
         else {
             includeHeaders = config.headersIncluded;
+            if (typeof (config.headers) === 'undefined') {
+                config.headers = [];
+            }
         }
         // Validations for dateFormat
         if (typeof (config.dateFormat) === 'undefined') {
-            suffixDateFormat = config.dateFormat;
+            // Empty block. SuffixDateFormat has a default value of 'ddmmyyyy'
         }
         else if (typeof (config.dateFormat) !== 'string') {
             throw new Error(`Invalid config.dateFormat. Expected: string type. Provided: ${typeof (config.dateFormat)}`);
@@ -140,44 +146,47 @@ const logger = (path, config) => {
         }
     }
     return (req, res, next) => {
-        let reqStart = Date.now();
-        let log = `${req.socket.remoteAddress} - ${getDateTime()} - "${req.method} ${req.url} ${req.protocol} `;
-        next();
-        log += `${res.statusCode}" - `;
-        if (config && config.headers) {
-            // Will include only supplied headers in the log.
-            if (includeHeaders) {
-                if (config.headers.length > 0) {
+        try {
+            let reqStart = Date.now();
+            let log = `${req.socket.remoteAddress} - ${getDateTime()} - "${req.method} ${req.url} ${req.protocol} `;
+            next();
+            log += `${res.statusCode}" - `;
+            if (config && config.headers) {
+                // Will include only supplied headers in the log.
+                if (includeHeaders) {
+                    if (config.headers.length > 0) {
+                        log += 'Headers: [ ';
+                        config.headers.map(key => {
+                            if (req.headers[key]) {
+                                log += `${key}: ${req.headers[key]}, `;
+                            }
+                        });
+                        log = `${log.slice(0, -2)}] - `;
+                    }
+                }
+                // Will exclude all supplied headers in the log.
+                else {
                     log += 'Headers: [ ';
-                    config.headers.map(key => {
-                        if (req.headers[key]) {
+                    Object.keys(req.headers).map(key => {
+                        if (!config.headers.includes(key)) {
                             log += `${key}: ${req.headers[key]}, `;
                         }
                     });
                     log = `${log.slice(0, -2)}] - `;
                 }
             }
-            // Will exclude all supplied headers in the log.
-            else {
-                log += 'Headers: [ ';
-                Object.keys(req.headers).map(key => {
-                    if (!config.headers.includes(key)) {
-                        log += `${key}: ${req.headers[key]}, `;
-                    }
-                });
-                log = `${log.slice(0, -2)}] - `;
-            }
+            log += `${Date.now() - reqStart} ms\n`;
+            eventLogLocation = createLogFilePath(path, "event");
+            fs_1.default.appendFile(eventLogLocation, log, err => {
+                if (err) {
+                    //error occured while writing to a file
+                    next(err);
+                }
+            });
         }
-        log += `${Date.now() - reqStart} ms\n`;
-        eventLogLocation = createLogFilePath(path, "event");
-        console.log(eventLogLocation);
-        fs_1.default.appendFile(eventLogLocation, log, err => {
-            if (err) {
-                //error occured while writing to a file
-                console.log('file error');
-                next(err);
-            }
-        });
+        catch (err) {
+            next(err);
+        }
     };
 };
 /**
@@ -190,7 +199,7 @@ const logger = (path, config) => {
  *                        }
  * @returns {function} Returns a middleware function.
  */
-const errorLogger = (path, config) => {
+exports.errorLogger = (path, config) => {
     if (typeof (path) !== 'string') {
         throw new Error(`Invalid file path. Expected: string. Provided: ${typeof (path)} `);
     }
@@ -216,7 +225,8 @@ const errorLogger = (path, config) => {
         }
         // Validations for dateFormat
         if (typeof (config.dateFormat) === 'undefined') {
-            suffixDateFormat = config.dateFormat;
+            // Empty block
+            // If not provided in errorLogger, it should not override the looger configration.
         }
         else if (typeof (config.dateFormat) !== 'string') {
             throw new Error(`Invalid config.dateFormat. Expected: string type. Provided: ${typeof (config.dateFormat)}`);
@@ -242,7 +252,7 @@ const errorLogger = (path, config) => {
                     res.statusCode(500).json(JSON.parse(config.responseMessage));
                     break;
                 case 'FILE':
-                    res.statusCode(500).sendFile(config.responseMessage);
+                    res.status(500).sendFile(config.responseMessage);
                     break;
                 default:
                     res.statusCode(500).send(config.responseMessage);
@@ -255,14 +265,14 @@ const errorLogger = (path, config) => {
  * Retruns the events log location file path.
  * @returns {string} eventLogLocation
  */
-const getEventLogLocation = () => {
+exports.getEventLogLocation = () => {
     return eventLogLocation;
 };
 /**
  * Retruns the errors log location file path.
  * @returns {string} errorLogLocation
  */
-const getErrorLogLocation = () => {
+exports.getErrorLogLocation = () => {
     return errorLogLocation;
 };
 /**
@@ -270,15 +280,7 @@ const getErrorLogLocation = () => {
  * @param {number} sizeInMB
  * @returns {void}
  */
-const setMaximumLogFileSize = (sizeInMB = 2) => {
+exports.setMaximumLogFileSize = (sizeInMB = 2) => {
     MAX_LOG_FILE_SIZE_MB = sizeInMB;
-};
-exports.default = {
-    "logger": logger,
-    "errorLogger": errorLogger,
-    "getDateTime": getDateTime,
-    "getEventLogLocation": getEventLogLocation,
-    "getErrorLogLocation": getErrorLogLocation,
-    "setMaximumLogFileSize": setMaximumLogFileSize
 };
 //# sourceMappingURL=logger.js.map
