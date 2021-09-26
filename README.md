@@ -1,5 +1,5 @@
 # Munsi
-A light weight simple logger middleware for express server. 
+A light weight simple logger middleware for express server. *It has no third party package dependency*.
 
 ## 1. Installation
 
@@ -16,9 +16,9 @@ $ npm install munsi
 var munsi = require('munsi')
 ```
 ### 2.2 Create event logs.
-Use `logger` function to create event logs middleware function:
+Use `logger` function to create event log middleware function:
 #### Parameters:
-1. `path` - Path where you want to create your logs. Read *4. Log file location* section for more info.
+1. `path` - Path where you want to create your logs. Read section *4. Log file location* for more info.
 2. `config` - Configuration for the event logger.
     * `headers` - **Array of HTTP header names** - **Optional**
         * If *headersIncluded* is true:\
@@ -145,7 +145,7 @@ Sample:
     ```js
     const express = require('express')
     const path = require('path')
-    const munsi = require('munsi')
+    var munsi = require('munsi');
 
     const app = express();
     const port = process.env.PORT || 8000;
@@ -174,7 +174,7 @@ Sample:
     ```js
     const express = require('express')
     const path = require('path')
-    const munsi = require('munsi')
+    var munsi = require('munsi');
 
     const app = express();
     const port = process.env.PORT || 8000;
@@ -204,6 +204,52 @@ Sample:
         return console.log(`server is listening on ${port}`);
     });
     ```
+3. Send Error message if unexpected error occurs.
+    ```js
+    const express = require('express')
+    const path = require('path')
+    var munsi = require('munsi')
+
+    const app = express();
+    const port = process.env.PORT || 8000;
+
+    let eventLogLocation = path.join(__dirname, './logs/event.log');
+    let errorLogLocation = path.join(__dirname, './logs/error.log');
+
+    let errorConfig = {
+        responseMessage: path.join(__dirname,'./Error.html'),
+        responseType: 'File'
+    }
+
+    let eventConfig = {
+        headersIncluded: false,
+        dateFormat: 'mmddyyyy'
+    }
+
+    app.use(munsi.logger(eventLogLocation, eventConfig));
+
+    app.use(express.static(__dirname + '/public'));
+
+    app.get('/', (req, res) => {
+        res.send('Hello World!');
+    });
+    app.get('/send',(req,res)=>{
+        throw new Error('Custom error.')
+    })
+
+    app.get('*',(req,res) =>{
+        res.status(404).send('Route not found.')
+    });
+    app.use(munsi.errorLogger(errorLogLocation, errorConfig));
+    app.listen(port, () => {
+        return console.log(`server is listening on ${port}`);
+    });
+    ```
+    Response:\
+    ![500 Error page](https://freefrontend.com/assets/img/500-error-page-html-templates/500-Error-Log-File.gif)
+
+    Gif credits: [freefrontend.com](https://freefrontend.com/500-error-page-html-templates/) \
+    Html page credit: [Adam Quinlan](https://codepen.io/quinlo/pen/aajEyb)
 ## 4. Log file location
 * If you have provided file name in logLocation as `__dirname + './../logs/event.log'` it will be changed to `__dirname + './../logs/09122021event.log'` where 09122021 is ddmmyyyy. The same will be followed for error log.
 * If you have provided just the directory for logLocation as `__dirname + './../logs/'` it will create a log file with default name **event.log**/**error.log** and will suffix ddmmyyyy as `__dirname + './../logs/09122021event.log'` or `__dirname + './../logs/09122021error.log'`.
@@ -219,8 +265,7 @@ Sample:
     setMaximumLogFileSize(1) // for setting it to 1MB
     setMaximumLogFileSize(3) // for setting it to 3MB
     ```
-4. You can also have date and time in dd-mm-yyyy hh:mm:ss string format by using `munsi.getDateTime()` function.
-5. There can only be one date format in the project so set dateFormat only in `logger()` function. If you are not using event logger then set the dateFormat in `errorLogger()`.
+4. There can only be one date format in the project so set dateFormat only in `logger()` function. If you are not using event logger then set the dateFormat in `errorLogger()`.
 
 ## License
 
