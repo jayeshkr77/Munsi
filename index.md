@@ -94,7 +94,7 @@ Use `errorLogger` function to create error logs:
                 responseType: "FILE"
             }
             ```
-    * `responseType` - Value **JSON | HTML | FILE**. See responseMessage section to learn the usage. Default value is HTML
+    * `responseType` - Value '**JSON**', '**HTML**' or '**FILE**'. See responseMessage section to learn the usage. Default value is HTML
         * If responseType is set to JSON logger will send the response with
             ```js
             res.statusCode(500).json(JSON.parse(config.responseMessage));
