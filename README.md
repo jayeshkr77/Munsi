@@ -248,7 +248,7 @@ Sample:
     Response:\
     ![500 Error page](https://freefrontend.com/assets/img/500-error-page-html-templates/500-Error-Log-File.gif)
 
-    Gif credits: [freefrontend.com](https://freefrontend.com/500-error-page-html-templates/) \
+    Gif credit: [freefrontend.com](https://freefrontend.com/500-error-page-html-templates/) \
     Html page credit: [Adam Quinlan](https://codepen.io/quinlo/pen/aajEyb)
 ## 4. Log file location
 * If you have provided file name in logLocation as `__dirname + './../logs/event.log'` it will be changed to `__dirname + './../logs/09122021event.log'` where 09122021 is ddmmyyyy. The same will be followed for error log.
