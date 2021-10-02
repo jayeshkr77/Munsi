@@ -45,7 +45,7 @@ const createSuffix = () => {
 const createLogFilePath = (filePath, type) => {
     let folderPath;
     let fileName;
-    let lastIndex = filePath.lastIndexOf(path.sep);
+    let lastIndex = filePath.lastIndexOf(path_1.default.sep);
     if (lastIndex === -1) {
         throw new Error('Invalid path name.');
     }
